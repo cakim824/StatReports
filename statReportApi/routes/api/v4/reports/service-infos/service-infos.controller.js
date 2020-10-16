@@ -97,8 +97,8 @@ const {
       tmp_obj.ETC = sumData;
       sumData = sort(function(a, b) { return b - a }, pluck('ACCEPTED_TIME_MAX', groupby_data[tmp_key]));
       tmp_obj.ACCEPTED_TIME_MAX = sumData[0];
-      sumData = sum(pluck('RESPONSE_RATE', groupby_data[tmp_key]))/length(groupby_data[tmp_key]);
-      tmp_obj.RESPONSE_RATE = sumData;
+      sumData = sum(pluck('ACCEPTED_AGENT', groupby_data[tmp_key]))/sum(pluck('CONNECTED_AGENT_IN', groupby_data[tmp_key])) *100;	
+      tmp_obj.RESPONSE_RATE = sumData.toFixed(2);
 
       groupby_sum.push(tmp_obj)
     }
@@ -160,6 +160,9 @@ const {
 
     avgData = prop('ETC', sum_data)/data_length;
     avg_data.ETC = avgData.toFixed(2); 
+
+    avgData = prop('ACCEPTED_AGENT', sum_data) / prop('CONNECTED_AGENT_IN', sum_data) *100;	
+    avg_data.RESPONSE_RATE = avgData.toFixed(2);
 
     return avg_data;
   };

@@ -95,13 +95,14 @@ const getAgentStatesInfos = async ({ date_unit, tenant_key, site_cd, agent_group
             ISNULL(X2.OB_ENGAGE, 0) AS OB_ENGAGE,
             ISNULL(X2.OB_ENGAGE_TIME, 0) AS OB_ENGAGE_TIME,
             ISNULL(X2.INVITE_TIME, 0) AS INVITE_TIME,
+            ISNULL(X2.INVITE, 0) AS INVITE,
             -- X2.IB_ENGAGE, X2.IB_ENGAGE_TIME, X2.OB_ENGAGE, X2.OB_ENGAGE_TIME
     
             -- X1.BUSY_TIME, 
             -- X1.WRAP_TIME,
-            CEILING(ISNULL(CONVERT(FLOAT,INVITE_TIME)/IB_OFFERED, 0)) AS AVG_INVITE_TIME,
-            CEILING(ISNULL(CONVERT(FLOAT,X1.BUSY_TIME)/(IB_ENGAGE + OB_ENGAGE), 0)) AS AVG_BUSY_TIME,
-            CEILING(ISNULL(CONVERT(FLOAT,X1.WRAP_TIME)/(IB_ENGAGE + OB_ENGAGE), 0)) AS AVG_WRAP_TIME,
+            CEILING(ISNULL(CONVERT(FLOAT,INVITE_TIME)/INVITE, 0)) AS AVG_INVITE_TIME,	
+            CEILING(ISNULL(CONVERT(FLOAT,X1.BUSY_TIME)/X1.BUSY, 0)) AS AVG_BUSY_TIME,	
+            CEILING(ISNULL(CONVERT(FLOAT,X1.WRAP_TIME)/X1.WRAP, 0)) AS AVG_WRAP_TIME,
             CEILING(ISNULL(CONVERT(FLOAT,IB_ENGAGE_TIME)/IB_ENGAGE, 0)) AS AVG_IB_ENGAGE_TIME,
             CEILING(ISNULL(CONVERT(FLOAT,OB_ENGAGE_TIME)/OB_ENGAGE, 0)) AS AVG_OB_ENGAGE_TIME
     
@@ -122,6 +123,8 @@ const getAgentStatesInfos = async ({ date_unit, tenant_key, site_cd, agent_group
            , A.BUSY_TIME   -- 처리소요시간
            , A.NOT_READY_TIME -- 이석시간
            , A.WRAP_TIME    -- 후처리 시간
+           , A.BUSY	
+           , A.WRAP
         FROM  ${main_view_name} A
             , ( SELECT DISTINCT A.RESOURCE_KEY, C.AGENT_FIRST_NAME as AGENT_NAME, C.EMPLOYEE_ID 
                 FROM RESOURCE_GROUP_FACT_ A, GROUP_ B, RESOURCE_ C, TENANT T
@@ -153,8 +156,9 @@ const getAgentStatesInfos = async ({ date_unit, tenant_key, site_cd, agent_group
                 -- ROW_NUMBER() OVER(ORDER BY AGENT_NAME, DT_KEY) AS NUM,
                 ISNULL(T1.DT_KEY, T2.DT_KEY) AS DT_KEY,
                 ISNULL(T1.AGENT_NAME, T2.AGENT_NAME) AS AGENT_NAME,
+                T1.IB_INVITE_TIME AS INVITE_TIME, T1.IB_INVITE AS INVITE,
     
-                T1.INVITE_TIME, T1.IB_OFFERED, T1.IB_ENGAGE, T1.IB_ENGAGE_TIME, T2.OB_ENGAGE, T2.OB_ENGAGE_TIME
+                T1.IB_OFFERED, T1.IB_ENGAGE, T1.IB_ENGAGE_TIME, T2.OB_ENGAGE, T2.OB_ENGAGE_TIME
     
                 -- ISNULL(T1.IB_ENGAGE, 0) AS IB_ENGAGE,
                 -- ISNULL(T1.IB_ENGAGE_TIME, 0) AS IB_ENGAGE_TIME,
@@ -168,7 +172,8 @@ const getAgentStatesInfos = async ({ date_unit, tenant_key, site_cd, agent_group
                         WHERE  DT.DATE_TIME_KEY = A.DATE_TIME_KEY
                         ) as DT_KEY, 
                        B.AGENT_NAME AS AGENT_NAME,
-                       SUM(A.INVITE_TIME) AS INVITE_TIME,
+                       SUM(A.INVITE_TIME) AS IB_INVITE_TIME,	
+                       SUM(A.INVITE) AS IB_INVITE,
                        SUM(A.OFFERED) as IB_OFFERED, 
                        SUM(A.ENGAGE) as IB_ENGAGE,
                        SUM(A.ENGAGE_TIME) as IB_ENGAGE_TIME
@@ -204,6 +209,8 @@ const getAgentStatesInfos = async ({ date_unit, tenant_key, site_cd, agent_group
                         WHERE  DT.DATE_TIME_KEY = A.DATE_TIME_KEY
                         ) as DT_KEY, 
                         B.AGENT_NAME AS AGENT_NAME,
+                        SUM(A.INVITE_TIME) AS OB_INVITE_TIME,	
+                        SUM(A.INVITE) AS OB_INVITE,
                         SUM(A.ENGAGE) as OB_ENGAGE, SUM(A.ENGAGE_TIME) as OB_ENGAGE_TIME
                 FROM ${sub_view_name} A INNER JOIN
                         (SELECT DISTINCT A.RESOURCE_KEY, C.AGENT_FIRST_NAME as AGENT_NAME
@@ -268,8 +275,9 @@ const getAgentLoginInfos = async ({ tenant_key, site_cd, agent_group, agent_id, 
          A.LOGIN_DAY AS DT_KEY,
          A.AGENT_NAME AS AGENT_NAME,
          CONVERT(VARCHAR(50), (DATEADD(S, A.START_TS + 9*3600, '1970-01-01')), 20) as LOGIN_TIME,
-      (CASE WHEN ((CONVERT(VARCHAR(50), (DATEADD(S, A.END_TS + 9*3600, '1970-01-01')), 20)) > '${end_date}') THEN ' '
-           ELSE (CONVERT(VARCHAR(50), (DATEADD(S, A.END_TS + 9*3600, '1970-01-01')), 20)) END) as LOGOUT_TIME 
+         RIGHT(CONVERT(VARCHAR(50), (DATEADD(S, A.START_TS + 9*3600, '1970-01-01')), 20),8) as LOGIN_TIME,
+         (CASE WHEN ((CONVERT(VARCHAR(50), (DATEADD(S, A.END_TS + 9*3600, '1970-01-01')), 20)) > '${end_date}') THEN ' '
+           ELSE RIGHT((CONVERT(VARCHAR(50), (DATEADD(S, A.END_TS + 9*3600, '1970-01-01')), 20)),8) END) as LOGOUT_TIME 
   
     FROM
     (

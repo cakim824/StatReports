@@ -16,23 +16,28 @@ const DATE_UNITS = {
   quarter: { 
     view_name: 'AG2_QUEUE_SUBHR',
     date_format: 'YYYY-MM-DD HH:mm',
+    date_type: "CHAR(10)"
   },
   hourly: { 
     view_name: 'AG2_QUEUE_HOUR',
     date_format: 'YYYY-MM-DD HH:mm',
+    date_type: "CHAR(10)"
   },
   daily: { 
     view_name: 'AG2_QUEUE_DAY',
     date_format: 'YYYY-MM-DD',
+    date_type: "CHAR(10)"
   },
   monthly: { 
     view_name: 'AG2_QUEUE_MONTH',
     date_format: 'YYYY-MM',
+    date_type: "CHAR(7)"
   }
 }
 
 const getViewName = date_unit => DATE_UNITS[date_unit].view_name;
 const getDateFormat = date_unit => DATE_UNITS[date_unit].date_format;
+const getDateType = date_unit => DATE_UNITS[date_unit].date_type;
 var isNotEmpty = value => value != "";
 
 const find = async ({ start_date, end_date, resource_keys, date_unit, start_time, end_time }) => {
@@ -50,6 +55,7 @@ const find = async ({ start_date, end_date, resource_keys, date_unit, start_time
   }
 
   const view_name = getViewName(date_unit);
+  const date_type = getDateType(date_unit);
   const mandatory_parameters = { 
     filteredStartDate, 
     filteredEndDate, 
@@ -66,7 +72,7 @@ const find = async ({ start_date, end_date, resource_keys, date_unit, start_time
   FROM (
   SELECT T1.DATE_TIME_KEY
        , T1.RESOURCE_KEY AS SERVICE_RESOURCE_KEY
-       , (SELECT CONVERT(VARCHAR(10), (SELECT DATEADD(SECOND, T1.DATE_TIME_KEY, '01/01/1970 09:00:00')), 121)) AS DATE_KEY
+       , (SELECT CONVERT(${date_type}, (SELECT DATEADD(SECOND, T1.DATE_TIME_KEY, '01/01/1970 09:00:00')), 121)) AS DATE_KEY
        , (SELECT CONVERT(VARCHAR(5), (SELECT DATEADD(SECOND, T1.DATE_TIME_KEY, '01/01/1970 09:00:00')), 108)) AS TIME_KEY
   	   , SUM(T1.ENTERED) - SUM(T1.REDIRECTED) AS CONNECTED_AGENT_IN
        , SUM(T1.ACCEPTED_AGENT) AS ACCEPTED_AGENT

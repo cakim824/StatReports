@@ -81,10 +81,11 @@ const getMsgRequestData = async ({ date_unit, site_cd, start_date, end_date, dni
     FROM tb_msg_request A
 
     WHERE 1=1 
-         -- AND SITE_CD = '${site_cd}'
+         AND SITE_CD = '${site_cd}'
          AND USER_ID = (SELECT SMS_USER_ID FROM tb_site WHERE SITE_CD = '${site_cd}' AND SMS_USE_YN = 'Y')
-         AND SERVICE_CD = (SELECT SERVICE_CD FROM tb_service WHERE SERVICE_NM LIKE '%GUIDESMS%')
-		 AND REQUEST_DATE BETWEEN '${start_date}' AND '${end_date}'
+         AND SERVICE_CD = '00011'
+         AND CALLBACK IN (SELECT REP_NO FROM tb_rep WHERE SITE_CD = '${site_cd}' AND USE_YN = 'Y' AND (REP_CD='CH00' OR REP_CD='CH06'))
+         AND LEFT(REQUEST_DATE, 8) BETWEEN '${start_date}' AND '${end_date}'
          ${time_range_query}
          ${dnis_query}	
 

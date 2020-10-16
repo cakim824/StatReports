@@ -42,8 +42,11 @@ const read = async (req, res, next) => {
         console.log("[agent-login-infos-daily] fianl_data: " + JSON.stringify(final_data));
         res.status(200).json(final_data);
     }
+
+    else {	
+      res.status(200).json(agent_states_data);	
+    }
  
-    res.status(200).json(agent_states_data);
   } catch (error) {
     console.log(error);
     res.status(500).json({ errorCode: 500, errorMessage: '문제가 발생했습니다.' });

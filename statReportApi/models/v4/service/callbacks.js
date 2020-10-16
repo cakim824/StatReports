@@ -70,7 +70,7 @@ const getCallbackDatas = async ({ date_unit, site_cd, start_date, end_date, in_t
     }
     if (isNotEmpty(start_time)) {
     // if ( start_time != "" ) {
-        time_range_query = `  AND X.TIME_KEY BETWEEN '${start_time}' AND '${end_time}'`;
+        time_range_query = `  AND X.TIME_FORM BETWEEN '${start_time}' AND '${end_time}'`;
     }
     // var parameters = { date_unit, site_cd, start_date, end_date, in_type, in_detail_type, dnis_index, endpoint_index };
   
@@ -80,7 +80,8 @@ const getCallbackDatas = async ({ date_unit, site_cd, start_date, end_date, in_t
     FROM (
     SELECT t2.row_date
        , LEFT(t2.row_date, 8) AS date_key
-       , RIGHT(t2.row_date, 4) AS time_key
+       , RIGHT(t2.row_date, 4) AS time_form
+       , CONCAT(SUBSTRING(t2.row_date, 9, 2), ':00') AS time_key
        , t2.site_cd
        , t2.in_type
        , t1.COM_SNM AS in_type_nm
@@ -127,7 +128,7 @@ const getCallbackDatas = async ({ date_unit, site_cd, start_date, end_date, in_t
            WHERE COM_LCD = 'IT03'
            AND USE_YN = 'Y'
          ) t3 ON t2.in_detail_type = t3.COM_SCD
-    WHERE  row_date BETWEEN '${start_date}' AND '${end_date}'
+    WHERE  LEFT(row_date, 8) BETWEEN '${start_date}' AND '${end_date}'
     AND    site_cd = '${site_cd}'
     ${in_type_query}
     ${in_detail_type_query}
