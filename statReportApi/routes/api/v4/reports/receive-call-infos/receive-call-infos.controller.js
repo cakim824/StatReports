@@ -25,10 +25,10 @@ const {
   // });
   
   
-  const readDatasource = ({ site_cd, date_unit, start_date, end_date, enter_queue_resource_keys, enter_queue_resource_key, consult_connect_queue_resource_keys, dnis_index, endpoint_index_keys }) => {
+  const readDatasource = ({ site_cd, date_unit, start_date, end_date, enter_queue_resource_keys, enter_queue_resource_key, consult_connect_queue_resource_keys, dnis_index, endpoint_index_keys, start_time, end_time }) => {
     return Promise.all([
-      EnterQueue.find({ start_date, end_date, resource_keys: enter_queue_resource_keys, resource_key: enter_queue_resource_key, date_unit }),
-      ConsultConnectQueue.find({ start_date, end_date, resource_keys: consult_connect_queue_resource_keys, date_unit }),
+      EnterQueue.find({ start_date, end_date, resource_keys: enter_queue_resource_keys, resource_key: enter_queue_resource_key, date_unit, start_time, end_time }),
+      ConsultConnectQueue.find({ start_date, end_date, resource_keys: consult_connect_queue_resource_keys, date_unit, start_time, end_time }),
       EnterQueueInfo.findBySiteCd( { site_cd, end_date, endpoint_index_keys } ),
       ConsultConnectQueueInfo.findBySiteCd( { site_cd, end_date, endpoint_index_keys } )
     ])

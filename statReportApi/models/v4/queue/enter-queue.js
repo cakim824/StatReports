@@ -14,7 +14,7 @@ const { filterArguments, filterArgumentsNumeric, filterArgumentsNumericList } = 
 
 const DATE_UNITS = {
   hourly: { 
-    view_name: 'AG2_QUEUE_SUBHR',
+    view_name: 'AG2_QUEUE_HOUR',
     date_format: 'YYYY-MM-DD HH:mm',
   },
   daily: { 
@@ -30,7 +30,7 @@ const DATE_UNITS = {
 const getViewName = date_unit => DATE_UNITS[date_unit].view_name;
 const getDateFormat = date_unit => DATE_UNITS[date_unit].date_format;
 
-const find = async ({ start_date, end_date, resource_keys, resource_key = 0, date_unit }) => {
+const find = async ({ start_date, end_date, resource_keys, resource_key = 0, date_unit, start_time, end_time }) => {
 
   var filteredStartDate = filterArguments(start_date);
   var filteredEndDate = filterArguments(end_date);
@@ -40,6 +40,10 @@ const find = async ({ start_date, end_date, resource_keys, resource_key = 0, dat
       || filteredResourceKeys != resource_keys
       || filteredResourceKey != resource_key ) {
     console.log("[enter-queue-info] arguments filtered: start_date=" + start_date + ", end_date=" + end_date + ", resource_keys=" + resource_keys + ", resource_key=" + resource_key);
+  }
+  var time_query = ''
+  if ( start_time != "" ) {
+    time_query = `  AND X.TIME_KEY BETWEEN '${start_time}' AND '${end_time}'`;
   }
 
   const view_name = getViewName(date_unit);
@@ -53,14 +57,27 @@ const find = async ({ start_date, end_date, resource_keys, resource_key = 0, dat
   const resource_key_query = filteredResourceKey ? `AND    T1.RESOURCE_KEY = @resource_key` : '';
 
   const query = `
+  SET ANSI_WARNINGS OFF
+  SET ARITHIGNORE ON
+  SET ARITHABORT OFF
+
+  SELECT *
+  FROM (
+
   SELECT T1.DATE_TIME_KEY
-       , T1.RESOURCE_KEY AS DID_RESOURCE_KEY
-  	   , ISNULL(SUM(T1.ENTERED + T1.CONSULT_ENTERED), 0) AS MAIN_CONTACT_CENTER_ENTERED
+        , (SELECT CONVERT(CHAR(10), (SELECT DATEADD(SECOND, T1.DATE_TIME_KEY, '01/01/1970 09:00:00')), 121)) AS DATE_KEY
+        , (SELECT CONVERT(VARCHAR(5), (SELECT DATEADD(SECOND, T1.DATE_TIME_KEY, '01/01/1970 09:00:00')), 108)) AS TIME_KEY
+        , T1.RESOURCE_KEY AS DID_RESOURCE_KEY
+  	    , ISNULL(SUM(T1.ENTERED + T1.CONSULT_ENTERED), 0) AS MAIN_CONTACT_CENTER_ENTERED
   FROM   ${view_name} T1
   WHERE  T1.DATE_TIME_KEY BETWEEN @start_timestamp AND @end_timestamp
   AND    T1.RESOURCE_KEY IN (${filteredResourceKeys})
   ${resource_key_query}
   GROUP BY T1.DATE_TIME_KEY, T1.RESOURCE_KEY
+
+  ) X
+  WHERE 1=1
+  ${time_query}
   ;
   `;
 
